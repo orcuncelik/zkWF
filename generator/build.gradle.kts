@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.6.10"
+    kotlin("jvm") version "1.9.22"
 }
 
 repositories {
@@ -12,14 +12,20 @@ subprojects {
         plugin("kotlin")
     }
 
-
     repositories {
         mavenCentral()
     }
 
-    dependencies {
-/*        implementation(kotlin("stdlib"))
-        testImplementation(kotlin("test"))
-        implementation(kotlin("script-runtime"))*/
+    // Configure all Kotlin and Java tasks to target Java 21 bytecode
+    // (Kotlin 1.9.x doesn't support Java 22 target yet)
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        kotlinOptions {
+            jvmTarget = "21"
+        }
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
 }

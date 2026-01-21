@@ -2,14 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 plugins {
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.22'
     id 'java'
 }
 
 version '0.0.1'
 
-sourceCompatibility = 1.9
+sourceCompatibility = 17
 
 repositories {
     mavenLocal()
@@ -35,9 +35,9 @@ dependencies {
 }
 
 shadowJar {
-    baseName = 'chaincode'
-    version = null
-    classifier = null
+    archiveBaseName.set('chaincode')
+    archiveVersion.set('')
+    archiveClassifier.set('')
 
     manifest {
         attributes 'Main-Class': 'org.hyperledger.fabric.contract.ContractRouter'
@@ -59,10 +59,7 @@ tasks.withType(JavaCompile) {
 
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "9"
-}
-compileKotlin {
-    kotlinOptions.jvmTarget = "9"
+    kotlinOptions.jvmTarget = "17"
 }
 
-targetCompatibility = JavaVersion.VERSION_1_9
+targetCompatibility = JavaVersion.VERSION_17

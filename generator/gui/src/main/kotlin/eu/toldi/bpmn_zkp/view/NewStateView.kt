@@ -26,6 +26,7 @@ class NewStateView(m: Model) : StateView(m,"New State",true), EventListener{
         when(event.type){
             EventType.STEP_INPROGRESS -> makeEditable(false)
             EventType.STEP_COMPLETE -> makeEditable(true)
+            else -> { /* Ignore other event types */ }
         }
     }
 

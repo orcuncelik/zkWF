@@ -135,6 +135,8 @@ class MainView : View("BPMN Zokrates Generator"), EventListener {
                         }
                         button("select...").apply {
                             action {
+                                val modelsDir = File("../models").absoluteFile
+                                val initialDir = if (modelsDir.exists() && modelsDir.isDirectory) modelsDir else File(System.getProperty("user.home"))
                                 val files = chooseFile(
                                     "Select a BPMN file",
                                     listOf<FileChooser.ExtensionFilter>(
@@ -143,7 +145,7 @@ class MainView : View("BPMN Zokrates Generator"), EventListener {
                                             "*.bpmn"
                                         )
                                     ).toTypedArray(),
-                                    File("../models").absoluteFile
+                                    initialDir
                                 )
                                 if (files.isNotEmpty())
                                     selectedFile = files[0]
@@ -217,6 +219,8 @@ class MainView : View("BPMN Zokrates Generator"), EventListener {
                 menu("File") {
                     item("Open...").apply {
                         action {
+                            val modelsDir = File("../models").absoluteFile
+                            val initialDir = if (modelsDir.exists() && modelsDir.isDirectory) modelsDir else File(System.getProperty("user.home"))
                             val files = chooseFile(
                                 "Select a BPMN file",
                                 listOf<FileChooser.ExtensionFilter>(
@@ -225,7 +229,7 @@ class MainView : View("BPMN Zokrates Generator"), EventListener {
                                         "*.bpmn"
                                     )
                                 ).toTypedArray(),
-                                File("../models").absoluteFile
+                                initialDir
                             )
                             if (files.isNotEmpty()) {
                                 selectedFile = files[0]
@@ -505,7 +509,7 @@ class MainView : View("BPMN Zokrates Generator"), EventListener {
                 Array(selectedModel!!.variables.size) { "0" }.asList(),
                 Array(selectedModel!!.messages.size) { Array(8) { "0" }.asList() }.asList()
             )
-            val hashValue = Zokrates.computeWithness(initialState.toArgs(), "hash", "hash_deploy.result")
+            val hashValue = Zokrates.computeWithness(initialState.toArgs(), "hash", "hash_deploy")
             val hash = web3.Model.Hash(
                 Uint256(BigInteger(hashValue[0])),
                 Uint256(BigInteger(hashValue[1])),

@@ -195,21 +195,33 @@ class ComputeView(private val m: Model, private val measurementTable: HBox) : Vi
                                         launch {
                                             println("Testcase #1")
                                             launch(Dispatchers.Default) {
-                                                addMeasurement(runTestCase(testCases!!.first()))
-                                                val proof =
-                                                    eu.toldi.`zokrates-wrapper`.model.ProofObject.fromJson(File("proof${testCases!!.first().ID}.json").readText())
-                                                val stateProof = StateProof(testCases!!.first().newState, proof!!)
-                                                File("stateProof${testCases!!.first().ID}.json").writeText(stateProof.toJson())
+                                                val measured = runTestCase(testCases!!.first())
+                                                addMeasurement(measured)
+                                                val proofFile = File("proof${testCases!!.first().ID}.json")
+                                                if (proofFile.exists()) {
+                                                    val proof =
+                                                        eu.toldi.`zokrates-wrapper`.model.ProofObject.fromJson(proofFile.readText())
+                                                    val stateProof = StateProof(testCases!!.first().newState, proof!!)
+                                                    File("stateProof${testCases!!.first().ID}.json").writeText(stateProof.toJson())
+                                                } else {
+                                                    setStatusMessage("Test#${testCases!!.first().ID} failed: ${proofFile.name} not found")
+                                                }
                                             }.join()
                                             println("Running other tests")
 
                                             testCases!!.drop(1).forEach {
                                                 launch(fixedThreadPool) {
-                                                    addMeasurement(runTestCase(it))
-                                                    val proof =
-                                                        eu.toldi.`zokrates-wrapper`.model.ProofObject.fromJson(File("proof${it.ID}.json").readText())
-                                                    val stateProof = StateProof(it.newState, proof!!)
-                                                    File("stateProof${it.ID}.json").writeText(stateProof.toJson())
+                                                    val measured = runTestCase(it)
+                                                    addMeasurement(measured)
+                                                    val proofFile = File("proof${it.ID}.json")
+                                                    if (proofFile.exists()) {
+                                                        val proof =
+                                                            eu.toldi.`zokrates-wrapper`.model.ProofObject.fromJson(proofFile.readText())
+                                                        val stateProof = StateProof(it.newState, proof!!)
+                                                        File("stateProof${it.ID}.json").writeText(stateProof.toJson())
+                                                    } else {
+                                                        setStatusMessage("Test#${it.ID} failed: ${proofFile.name} not found")
+                                                    }
                                                 }
                                             }
                                         }.join()
@@ -253,8 +265,8 @@ class ComputeView(private val m: Model, private val measurementTable: HBox) : Vi
             val s_curr = t.initialState.toArgs()
             val s_next = t.newState.toArgs()
             println(s_curr)
-            val hash = Zokrates.computeWithness(s_curr, "hash", "hash${t.ID}.result")
-            val hash_next = Zokrates.computeWithness(s_next, "hash", "hash${t.ID}.result")
+            val hash = Zokrates.computeWithness(s_curr, "hash", "hash${t.ID}_curr")
+            val hash_next = Zokrates.computeWithness(s_next, "hash", "hash${t.ID}_next")
 
             val keys = getKeys(hashToHexFormat(hash), hashToHexFormat(hash_next), t.keyIndex)
             println(keys)
@@ -320,14 +332,23 @@ class ComputeView(private val m: Model, private val measurementTable: HBox) : Vi
     }
 
     fun getKeys(hash0: String, hash1: String, keyIndex: Int): List<String> {
-        println("python ../pycrypto/demo.py $hash0 $hash1")
-        val pb = ProcessBuilder("python", "../pycrypto/demo.py", hash0, hash1, keyIndex.toString())
-
+        val pythonCmd = resolvePythonCommand()
+        println("$pythonCmd ../pycrypto/demo.py $hash0 $hash1")
+        val pb = ProcessBuilder(pythonCmd, "../pycrypto/demo.py", hash0, hash1, keyIndex.toString())
 
         val process = pb.start()
-        process.waitFor()
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        return output.split(' ')
+        val exitCode = process.waitFor()
+        val stdout = process.inputStream.bufferedReader().use { it.readText() }
+        val stderr = process.errorStream.bufferedReader().use { it.readText() }
+        if (exitCode != 0) {
+            val errorOutput = if (stderr.isNotBlank()) stderr else stdout
+            throw IllegalStateException("pycrypto/demo.py failed (exit $exitCode): ${errorOutput.trim()}")
+        }
+        val tokens = stdout.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (tokens.size < 6) {
+            throw IllegalStateException("pycrypto/demo.py returned ${tokens.size} values, expected 6: ${stdout.trim()}")
+        }
+        return tokens
     }
 
     suspend fun setStatusMessage(msg: String) {
@@ -346,11 +367,21 @@ class ComputeView(private val m: Model, private val measurementTable: HBox) : Vi
 
 
     fun getKeyByIndex(index: Int): String {
-        val pb = ProcessBuilder("python", "../pycrypto/getKey.py", index.toString())
+        val pythonCmd = resolvePythonCommand()
+        val pb = ProcessBuilder(pythonCmd, "../pycrypto/getKey.py", index.toString())
 
         val process = pb.start()
-        process.waitFor()
-        val output = process.inputStream.bufferedReader().use { it.readText() }.split(" ").take(2)
+        val exitCode = process.waitFor()
+        val stdout = process.inputStream.bufferedReader().use { it.readText() }
+        val stderr = process.errorStream.bufferedReader().use { it.readText() }
+        if (exitCode != 0) {
+            val errorOutput = if (stderr.isNotBlank()) stderr else stdout
+            throw IllegalStateException("pycrypto/getKey.py failed (exit $exitCode): ${errorOutput.trim()}")
+        }
+        val output = stdout.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (output.size < 2) {
+            throw IllegalStateException("pycrypto/getKey.py returned ${output.size} values, expected 2: ${stdout.trim()}")
+        }
         return "${output[0]} ${output[1]}"
     }
 
@@ -364,5 +395,41 @@ class ComputeView(private val m: Model, private val measurementTable: HBox) : Vi
             result[it.name] = keys.indexOf(it.publicKey!!.replace(",", ""))
         }
         return result
+    }
+
+    private fun resolvePythonCommand(): String {
+        val envPython = System.getenv("PYTHON")
+        if (!envPython.isNullOrBlank()) {
+            return envPython
+        }
+        val candidates = listOf("python3", "python")
+        for (candidate in candidates) {
+            if (isCommandAvailable(candidate)) {
+                return candidate
+            }
+        }
+        return "python3"
+    }
+
+    private fun isCommandAvailable(command: String): Boolean {
+        val path = System.getenv("PATH") ?: return false
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        val extensions = if (isWindows) {
+            System.getenv("PATHEXT")?.split(';')?.filter { it.isNotBlank() } ?: listOf(".exe", ".bat", ".cmd")
+        } else {
+            emptyList()
+        }
+        for (dir in path.split(File.pathSeparator)) {
+            if (dir.isBlank()) continue
+            val file = File(dir, command)
+            if (file.exists() && file.canExecute()) return true
+            if (isWindows) {
+                for (ext in extensions) {
+                    val fileWithExt = File(dir, command + ext)
+                    if (fileWithExt.exists() && fileWithExt.canExecute()) return true
+                }
+            }
+        }
+        return false
     }
 }

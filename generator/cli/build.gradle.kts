@@ -1,6 +1,5 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "6.1.0"
-    application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     java
     kotlin("jvm")
 }
@@ -8,18 +7,11 @@ plugins {
 group = "eu.toldi"
 version = "1.0-SNAPSHOT"
 
-application {
-    mainClass.set("eu.toldi.bpmn_zkp.CLIMain.kt")
-    project.setProperty("mainClassName", "eu.toldi.bpmn_zkp.CLIMainKt")
-}
-
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
-    implementation("com.andreapivetta.kolor:kolor:1.0.0")
     implementation(kotlin("stdlib"))
     implementation(project(":model"))
     implementation(project(":zokrates-wrapper"))
@@ -30,6 +22,18 @@ dependencies {
     implementation("org.web3j:core:4.9.1")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
+}
+
+tasks {
+    shadowJar {
+        archiveBaseName.set("cli")
+        archiveClassifier.set("all")
+        archiveVersion.set("1.0-SNAPSHOT")
+        manifest {
+            attributes["Main-Class"] = "eu.toldi.bpmn_zkp.CLIMainKt"
+        }
+        mergeServiceFiles()
+    }
 }
 
 tasks.getByName<Test>("test") {

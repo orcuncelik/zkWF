@@ -16,8 +16,6 @@
 
 package eu.toldi.bpmn_zkp
 
-import com.andreapivetta.kolor.green
-import com.andreapivetta.kolor.red
 import eu.toldi.bpmn_zkp.helper.SolidityHelper
 import eu.toldi.bpmn_zkp.model.Model
 import eu.toldi.bpmn_zkp.model.helper.MeasuredTimes
@@ -62,7 +60,7 @@ fun deploySC(random: Int): String {
         Array(model.variables.size) { "0" }.asList(),
         Array(model.messages.size) { Array(8) { "0" }.asList() }.asList()
     )
-    val hashValue = Zokrates.computeWithness(initialState.toArgs(), "hash", "hash_deploy.result")
+    val hashValue = Zokrates.computeWithness(initialState.toArgs(), "hash", "hash_deploy")
     val hash = web3.Model.Hash(
         Uint256(BigInteger(hashValue[0])),
         Uint256(BigInteger(hashValue[1])),
@@ -280,8 +278,8 @@ fun runTestCase(t: TestCase): MeasuredTimes {
         val s_curr = t.initialState.toArgs()
         val s_next = t.newState.toArgs()
         println(s_curr)
-        val hash = Zokrates.computeWithness(s_curr, "hash", "hash${t.ID}.result")
-        val hash_next = Zokrates.computeWithness(s_next, "hash", "hash${t.ID}.result")
+        val hash = Zokrates.computeWithness(s_curr, "hash", "hash${t.ID}_curr")
+        val hash_next = Zokrates.computeWithness(s_next, "hash", "hash${t.ID}_next")
 
         val keys = getKeys(hashToHexFormat(hash), hashToHexFormat(hash_next), t.keyIndex)
         println(keys)
@@ -344,14 +342,59 @@ fun runTestCase(t: TestCase): MeasuredTimes {
 }
 
 fun getKeys(hash0: String, hash1: String, keyIndex: Int): List<String> {
-    println("python ../pycrypto/demo.py $hash0 $hash1")
-    val pb = ProcessBuilder("python", "../pycrypto/demo.py", hash0, hash1, keyIndex.toString())
-
+    val pythonCmd = resolvePythonCommand()
+    println("$pythonCmd ../pycrypto/demo.py $hash0 $hash1")
+    val pb = ProcessBuilder(pythonCmd, "../pycrypto/demo.py", hash0, hash1, keyIndex.toString())
 
     val process = pb.start()
-    process.waitFor()
-    val output = process.inputStream.bufferedReader().use { it.readText() }
-    return output.split(' ')
+    val exitCode = process.waitFor()
+    val stdout = process.inputStream.bufferedReader().use { it.readText() }
+    val stderr = process.errorStream.bufferedReader().use { it.readText() }
+    if (exitCode != 0) {
+        val errorOutput = if (stderr.isNotBlank()) stderr else stdout
+        throw IllegalStateException("pycrypto/demo.py failed (exit $exitCode): ${errorOutput.trim()}")
+    }
+    val tokens = stdout.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    if (tokens.size < 6) {
+        throw IllegalStateException("pycrypto/demo.py returned ${tokens.size} values, expected 6: ${stdout.trim()}")
+    }
+    return tokens
+}
+
+private fun resolvePythonCommand(): String {
+    val envPython = System.getenv("PYTHON")
+    if (!envPython.isNullOrBlank()) {
+        return envPython
+    }
+    val candidates = listOf("python3", "python")
+    for (candidate in candidates) {
+        if (isCommandAvailable(candidate)) {
+            return candidate
+        }
+    }
+    return "python3"
+}
+
+private fun isCommandAvailable(command: String): Boolean {
+    val path = System.getenv("PATH") ?: return false
+    val isWindows = System.getProperty("os.name").lowercase().contains("win")
+    val extensions = if (isWindows) {
+        System.getenv("PATHEXT")?.split(';')?.filter { it.isNotBlank() } ?: listOf(".exe", ".bat", ".cmd")
+    } else {
+        emptyList()
+    }
+    for (dir in path.split(File.pathSeparator)) {
+        if (dir.isBlank()) continue
+        val file = File(dir, command)
+        if (file.exists() && file.canExecute()) return true
+        if (isWindows) {
+            for (ext in extensions) {
+                val fileWithExt = File(dir, command + ext)
+                if (fileWithExt.exists() && fileWithExt.canExecute()) return true
+            }
+        }
+    }
+    return false
 }
 
 

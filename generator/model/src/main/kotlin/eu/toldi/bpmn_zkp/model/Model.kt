@@ -28,6 +28,7 @@ import eu.toldi.bpmn_zkp.utils.foreach
 import eu.toldi.bpmn_zkp.utils.get
 import org.w3c.dom.Node
 import java.io.File
+import java.io.FileNotFoundException
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.absoluteValue
 
@@ -321,6 +322,8 @@ class Model(file: File) {
                     }
                     print(']')
                 }
+
+                else -> { /* No output for other event types */ }
             }
             println()
         }
@@ -331,9 +334,32 @@ class Model(file: File) {
 
 
     fun generateZokratesCode() {
-        val rootTMP = File("root.zok.template").readText()
-        val stateChange = File("stateChange.zok.template").readText()
-        val hashTMP = File("hash.zok.template").readText()
+        fun loadTemplate(name: String): String {
+            // Try common locations: CWD, generator/, alongside the running jar, and classpath.
+            val candidates = mutableListOf<File>()
+
+            val cwd = File(System.getProperty("user.dir"))
+            candidates += File(cwd, name)
+            candidates += File(cwd, "generator/$name")
+
+            val jarDir = File(Model::class.java.protectionDomain.codeSource.location.toURI()).parentFile
+            candidates += File(jarDir, name)
+            jarDir.parentFile?.let { candidates += File(it, name) } // build/
+            jarDir.parentFile?.parentFile?.let { candidates += File(it, name) } // gui/
+            jarDir.parentFile?.parentFile?.parentFile?.let { candidates += File(it, name) } // generator/
+
+            candidates.firstOrNull { it.exists() }?.let { return it.readText() }
+
+            javaClass.getResourceAsStream("/$name")?.let {
+                return it.bufferedReader().use { reader -> reader.readText() }
+            }
+
+            throw FileNotFoundException("Template not found: $name. Checked ${candidates.joinToString()}")
+        }
+
+        val rootTMP = loadTemplate("root.zok.template")
+        val stateChange = loadTemplate("stateChange.zok.template")
+        val hashTMP = loadTemplate("hash.zok.template")
 
         val P = generateArrayP()
         printModel()
@@ -343,11 +369,11 @@ class Model(file: File) {
         @Suppress("UNCHECKED_CAST") val stateVectorElements: List<StateVectorElement> =
             events.filter { it is StateVectorElement } as List<StateVectorElement>
 
-        builder.append("const u32 len_w = ${P.size / 3}")
+        builder.append("const u32 len_w = ${P.size / 3};")
         builder.appendLine()
-        builder.append("const u32 len_V = ${stateVectorElements.size}")
+        builder.append("const u32 len_V = ${stateVectorElements.size};")
         builder.appendLine()
-        builder.append("const u32 len_E = ${transitions.size}")
+        builder.append("const u32 len_E = ${transitions.size};")
         builder.appendLine()
         builder.append("const signed_field[len_w][3][2] p = [")
         P.forEach {
@@ -370,6 +396,7 @@ class Model(file: File) {
         }
         builder.setLength(builder.length - 1)
         builder.append(']')
+        builder.append(';')
         builder.appendLine()
 
         val stateZok = File("stateChange.zok")
@@ -380,7 +407,7 @@ class Model(file: File) {
 
         val len_V: Int = stateVectorElements.size
         //val len_V = 16
-        builder.append("const u32 len_V = $len_V")
+        builder.append("const u32 len_V = $len_V;")
         builder.appendLine()
         builder.append("const field[${len_V}][2] keys = [")
         var prefix = ""
@@ -392,6 +419,7 @@ class Model(file: File) {
             builder.append(']')
         }
         builder.append(']')
+        builder.append(';')
 
         val sb = StringBuilder()
         sb.append("hash = sha256h([")
@@ -422,7 +450,7 @@ class Model(file: File) {
                             assertsSB.append(" v_curr.${it.name} == v_next.${it.name} ")
                             prefix1 = "&&"
                         }
-                        assertsSB.append(')')
+                        assertsSB.append(");")
                         assertsSB.appendLine()
                     }
                 }
@@ -433,7 +461,7 @@ class Model(file: File) {
             val throwIndex = stateVectorElements.indexOf(event)
             event as MessageThrowEvent
 
-            assertsSB.appendLine("\tassert( state == $throwIndex && msg_curr.${event.message.id} != msg_next.${event.message.id} || msg_curr.${event.message.id} == msg_next.${event.message.id} )")
+            assertsSB.appendLine("\tassert( state == $throwIndex && msg_curr.${event.message.id} != msg_next.${event.message.id} || msg_curr.${event.message.id} == msg_next.${event.message.id} );")
         }
 
         events.filter { it is MessageCatchEvent }.forEach { event ->
@@ -441,7 +469,7 @@ class Model(file: File) {
             val catchIndex = stateVectorElements.indexOf(event)
             val throwIntex = stateVectorElements.asSequence()
                 .indexOfFirst { it is MessageThrowEvent && it.message.id == catchEvent.message.id }
-            assertsSB.appendLine("\tassert( state != $catchIndex || s_next[state] != 2 || s_next[$throwIntex] == 2 )")
+            assertsSB.appendLine("\tassert( state != $catchIndex || s_next[state] != 2 || s_next[$throwIntex] == 2 );")
         }
 
         val tasks = events.filter { it is StateVectorElement }
@@ -454,9 +482,9 @@ class Model(file: File) {
                 assert(transition.name != null)
                 val expression = Expression(transition.name!!)
                 if (startIndex < endIndex) {
-                    assertsSB.appendLine("\tassert( changes[0] != $startIndex || changes[1] != $endIndex || ${expression})")
+                    assertsSB.appendLine("\tassert( changes[0] != $startIndex || changes[1] != $endIndex || ${expression});")
                 } else {
-                    assertsSB.appendLine("\tassert( changes[1] != $startIndex || changes[0] != $endIndex || ${expression})")
+                    assertsSB.appendLine("\tassert( changes[1] != $startIndex || changes[0] != $endIndex || ${expression});")
                 }
             }
             if (exclusive.default != null) {
@@ -474,7 +502,7 @@ class Model(file: File) {
                     assertsSB.append(" $prefix1 !(${expression})")
                     prefix1 = "&&"
                 }
-                assertsSB.appendLine(')')
+                assertsSB.appendLine(");")
             }
 
         }
@@ -579,7 +607,7 @@ class Model(file: File) {
 
         val messageHashStringBuilder = buildString {
             messages.forEach {
-                appendLine("\tu32[8] ${it.id}")
+                appendLine("\tu32[8] ${it.id};")
             }
         }
 

@@ -88,7 +88,7 @@ object Zokrates {
             sb.append(it)
         }
         println(sb.toString())
-        val command = mutableListOf(zokratesPath, "compute-witness", "-i", input, "-o", output, "-a").apply {
+        val command = mutableListOf(zokratesPath, "compute-witness", "-i", input, "-o", output, "--json", "-a").apply {
             addAll(args)
         }
         val processBuilder = ProcessBuilder(command)
@@ -105,6 +105,23 @@ object Zokrates {
     }
 
     fun readWitness(witness: String = "witness"): List<String> {
+        val jsonFile = File("$witness.json")
+        val fallbackJsonFile = File("witness.json")
+        val jsonToRead = when {
+            jsonFile.exists() -> jsonFile
+            fallbackJsonFile.exists() -> fallbackJsonFile
+            else -> null
+        }
+        if (jsonToRead != null) {
+            val regex = Regex("\"~out_(\\d+)\"\\s*:\\s*\"(\\d+)\"")
+            val outputs = mutableMapOf<Int, String>()
+            regex.findAll(jsonToRead.readText()).forEach { match ->
+                outputs[match.groupValues[1].toInt()] = match.groupValues[2]
+            }
+            if (outputs.isNotEmpty()) {
+                return outputs.toSortedMap().values.toList()
+            }
+        }
         return File(witness).readText().split("\n").filter { it.startsWith("~out_") }.sorted().map { it.split(' ')[1] }
     }
 

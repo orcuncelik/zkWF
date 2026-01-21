@@ -17,17 +17,55 @@
 package eu.toldi.bpmn_zkp
 
 import eu.toldi.`zokrates-wrapper`.Zokrates
+import java.io.File
 
 
 fun getKeys(hash0: String, hash1: String): List<String> {
-    println("python ../pycrypto/demo.py $hash0 $hash1")
-    val pb = ProcessBuilder("python", "../pycrypto/demo.py", hash0, hash1)
+    val pythonCmd = resolvePythonCommand()
+    println("$pythonCmd ../pycrypto/demo.py $hash0 $hash1")
+    val pb = ProcessBuilder(pythonCmd, "../pycrypto/demo.py", hash0, hash1)
 
 
     val process = pb.start()
     process.waitFor()
     val output = process.inputStream.bufferedReader().use { it.readText() }
     return output.split(' ')
+}
+
+private fun resolvePythonCommand(): String {
+    val envPython = System.getenv("PYTHON")
+    if (!envPython.isNullOrBlank()) {
+        return envPython
+    }
+    val candidates = listOf("python3", "python")
+    for (candidate in candidates) {
+        if (isCommandAvailable(candidate)) {
+            return candidate
+        }
+    }
+    return "python3"
+}
+
+private fun isCommandAvailable(command: String): Boolean {
+    val path = System.getenv("PATH") ?: return false
+    val isWindows = System.getProperty("os.name").lowercase().contains("win")
+    val extensions = if (isWindows) {
+        System.getenv("PATHEXT")?.split(';')?.filter { it.isNotBlank() } ?: listOf(".exe", ".bat", ".cmd")
+    } else {
+        emptyList()
+    }
+    for (dir in path.split(File.pathSeparator)) {
+        if (dir.isBlank()) continue
+        val file = File(dir, command)
+        if (file.exists() && file.canExecute()) return true
+        if (isWindows) {
+            for (ext in extensions) {
+                val fileWithExt = File(dir, command + ext)
+                if (fileWithExt.exists() && fileWithExt.canExecute()) return true
+            }
+        }
+    }
+    return false
 }
 
 val s_curr = mutableListOf(

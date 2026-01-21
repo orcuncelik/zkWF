@@ -1,13 +1,6 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    //kotlin("jvm") version "1.6.10"
-    id("com.github.johnrengelman.shadow") version "6.1.0"
-    id("org.openjfx.javafxplugin") version "0.0.12"
-    /*id ("org.web3j") version "4.8.8"
-    id ("com.github.node-gradle.node") version "3.1.1"
-    id ("org.web3j.solidity") version "0.3.2"*/
-    application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("org.openjfx.javafxplugin") version "0.1.0"
     java
     kotlin("jvm")
 }
@@ -18,11 +11,6 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-}
-
-application {
-    mainClass.set("eu.toldi.bpmn_zkp.GUI.kt")
-    project.setProperty("mainClassName", "eu.toldi.bpmn_zkp.GUIKt")
 }
 
 dependencies {
@@ -39,20 +27,18 @@ dependencies {
 
 javafx {
     modules("javafx.controls", "javafx.fxml", "javafx.web")
-    version = "11"
+    version = "21"
 }
 
 tasks {
     shadowJar {
-
         archiveBaseName.set("bpmn_zkp")
         archiveClassifier.set("")
         archiveVersion.set("")
+        manifest {
+            attributes["Main-Class"] = "eu.toldi.bpmn_zkp.GUIKt"
+        }
+        mergeServiceFiles()
     }
 }
-
-tasks.withType<KotlinCompile>() {
-    kotlinOptions.jvmTarget = "11"
-}
-
 
