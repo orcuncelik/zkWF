@@ -1,0 +1,52 @@
+{
+  "name": "zkwf-verifier",
+  "version": "1.0.0",
+  "description": "zkWF Smart Contract Verifier - Supports Truffle, Hardhat, and zkSync Era",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npx hardhat test",
+
+    "compile:truffle": "npx truffle compile",
+    "compile:hardhat": "npx hardhat compile",
+    "compile:zksync": "npx hardhat compile --network zkSyncTestnet",
+
+    "deploy:ganache": "npx truffle migrate --network development",
+    "deploy:localhost": "npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "deploy:mainnet": "npx hardhat run scripts/deploy.js --network mainnet",
+
+    "deploy:zksync-testnet": "npx hardhat deploy-zksync --script deploy-model.js --network zkSyncTestnet",
+    "deploy:zksync-mainnet": "npx hardhat deploy-zksync --script deploy-model.js --network zkSyncMainnet",
+
+    "ganache": "npx ganache --port 8545",
+    "clean": "rm -rf cache cache-hardhat cache-zk artifacts artifacts-hardhat artifacts-zk build"
+  },
+  "keywords": [
+    "zkwf",
+    "zk-snark",
+    "ethereum",
+    "zksync",
+    "bpmn",
+    "workflow"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^2.1.15",
+    "truffle": "^5.11.5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@matterlabs/hardhat-zksync-deploy": "^1.1.2",
+    "@matterlabs/hardhat-zksync-node": "^1.5.3",
+    "@matterlabs/hardhat-zksync-solc": "^1.0.6",
+    "@matterlabs/hardhat-zksync-verify": "^1.2.2",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.0",
+    "hardhat": "^2.19.4",
+    "zksync-ethers": "^6.0.0"
+  }
+}

@@ -107,6 +107,9 @@ if (!window.FileList || !window.FileReader) {
 
 $(function() {
 
+  // Auto-load a new diagram on startup
+  createNewDiagram();
+
   $('#js-create-diagram').click(function(e) {
     e.stopPropagation();
     e.preventDefault();

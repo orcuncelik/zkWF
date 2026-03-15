@@ -23,14 +23,10 @@ import org.w3c.dom.Node
 class SequenceFlowParser : ElementParser {
     override fun parse(model: Model, element: Node): Transition {
         val id = element.attributes.getNamedItem("id").textContent
-        var transition = model.getTransition(id)
-        val name = element.attributes.getNamedItem("name")
-        if (name != null) {
-            transition = Transition(id, name.textContent)
-        }
+        val transition = model.getTransition(id)
+        // Preserve existing start/end links; only enrich the name if provided.
+        element.attributes.getNamedItem("name")?.textContent?.let { transition.name = it }
 
-        return transition.also {
-            model.addTransition(it)
-        }
+        return transition.also { model.addTransition(it) }
     }
 }

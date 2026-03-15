@@ -68,3 +68,25 @@ flycheck_*.el
 # network security
 /network-security.data
 abi.json
+
+# IntelliJ / IDE local files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS local metadata
+.DS_Store
+
+# Generated zkWF / ZoKrates local artifacts
+.zokrates/
+/hash
+/hash*_curr
+/hash*_next
+/hash*_curr.json
+/hash*_next.json
+/hash.zok
+/root.zok
+/stateChange.zok
+*.r1cs
+*.wtns

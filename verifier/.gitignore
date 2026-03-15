@@ -1,5 +1,41 @@
+# Truffle
+build
 contracts/.placeholder
 test/.placeholder
-build
+
+# Hardhat
+cache
+cache-hardhat
+artifacts
+artifacts-hardhat
+artifacts-hardhat-zk
+
+# zkSync
+cache-zk
+cache-hardhat-zk
+artifacts-zk
+
+# Dependencies
 node_modules
+
+# Environment & Secrets
+.env
 deploy_mnemonic.key
+*.key
+*.secret
+
+# IDE
+.idea
+.vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage
+coverage.json

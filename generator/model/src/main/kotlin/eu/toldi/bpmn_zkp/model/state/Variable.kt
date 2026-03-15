@@ -19,7 +19,7 @@ package eu.toldi.bpmn_zkp.model.state
 data class Variable(val name: String, val type: VariableType) {
 
     override fun toString(): String {
-        return "${type.toString().lowercase()} $name"
+        return "${type.toString().lowercase()} $name;"
     }
 }
 

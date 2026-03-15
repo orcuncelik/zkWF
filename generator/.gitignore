@@ -3,6 +3,16 @@ root.zok
 stateChange.zok
 hash.zok
 hash
+hash*_curr
+hash*_next
+hash*_curr.json
+hash*_next.json
+test*.json
+test*.result
+test_minimal.zok
+zokrates_inputs.txt
+out.r1cs
+out.wtns
 
 # Compiled class file
 *.class
@@ -122,6 +132,7 @@ cmake-build-*/
 
 # IntelliJ
 out/
+*/bin/
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/

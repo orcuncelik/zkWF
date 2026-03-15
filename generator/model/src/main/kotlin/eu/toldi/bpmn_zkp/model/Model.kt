@@ -150,6 +150,10 @@ class Model(file: File) {
             TagNames.START_EVENT2 to StartEventParser(),
             TagNames.TASK to TaskParser(),
             TagNames.TASK2 to TaskParser(),
+            TagNames.SEND_TASK to TaskParser(),
+            TagNames.SEND_TASK2 to TaskParser(),
+            TagNames.RECEIVE_TASK to TaskParser(),
+            TagNames.RECEIVE_TASK2 to TaskParser(),
             TagNames.FINAL_EVENT to FinalEventParser(),
             TagNames.FINAL_EVENT2 to FinalEventParser(),
             TagNames.PARALLEL_GATEWAY to ParallelGatewayParser(),
@@ -225,6 +229,15 @@ class Model(file: File) {
 
 
     fun generateArrayP(): List<List<Int>> {
+        // Debug: identify transitions that are not fully linked before building P.
+        transitions.forEach {
+            val startId = runCatching { it.start.id }.getOrDefault("<unset>")
+            val endId = runCatching { it.end.id }.getOrDefault("<unset>")
+            if (startId == "<unset>" || endId == "<unset>") {
+                println("WARN: Transition ${it.id} not fully initialized (start=$startId, end=$endId)")
+            }
+        }
+
         val result: MutableList<List<Int>> = mutableListOf()
         val tasks = events.filter { it is StateVectorElement }
         events.forEach { event ->

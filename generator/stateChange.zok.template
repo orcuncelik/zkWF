@@ -137,7 +137,8 @@ def main(u32[len_V] s_curr,u32[len_V] s_next) -> u32[4] {
             other = is_other ? field_to_u32(p[i][j][1].value) : other;
         }
 
-        good = good && (minusCount == 2 && contains && s_next[other] != 2);
+        // Allow either branch of a parallel join-to-end pattern to finish first or second.
+        good = good && (minusCount == 2 && contains && s_next[other] != 0);
         result = result || good;
     }
 

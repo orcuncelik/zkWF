@@ -16,7 +16,15 @@
 
 package eu.toldi.bpmn_zkp.model.bpmn
 
-class Transition(id: String, val name: String? = null) : Element(id) {
+/**
+ * Sequence flow between two BPMN events/tasks.
+ *
+ * The flow is created early (when first referenced) and later enriched with
+ * `start`, `end`, and an optional `name` (expression).  `name` must therefore
+ * be mutable to allow the sequence-flow parser to fill it in without
+ * replacing an already-linked instance.
+ */
+class Transition(id: String, var name: String? = null) : Element(id) {
     lateinit var start: Event
     lateinit var end: Event
 }
