@@ -52,8 +52,6 @@ class Model(file: File) {
         val builder = factory.newDocumentBuilder()
         val doc = builder.parse(file)
 
-
-
         if (doc.getElementsByTagName(TagNames.COLLABORATION).length == 0) {
             throw IllegalArgumentException("Invalid model! The model must be a collaboration!")
         } else {
@@ -229,21 +227,11 @@ class Model(file: File) {
 
 
     fun generateArrayP(): List<List<Int>> {
-        // Debug: identify transitions that are not fully linked before building P.
-        transitions.forEach {
-            val startId = runCatching { it.start.id }.getOrDefault("<unset>")
-            val endId = runCatching { it.end.id }.getOrDefault("<unset>")
-            if (startId == "<unset>" || endId == "<unset>") {
-                println("WARN: Transition ${it.id} not fully initialized (start=$startId, end=$endId)")
-            }
-        }
-
         val result: MutableList<List<Int>> = mutableListOf()
         val tasks = events.filter { it is StateVectorElement }
         events.forEach { event ->
             when (event) {
                 is Task -> {
-                    println(event.id)
                     result.add(listOf(-1, tasks.indexOf(event.incomingTransition.start)))
                     result.add(listOf(1, tasks.indexOf(event)))
                     result.add(emptyTransition)
@@ -317,34 +305,6 @@ class Model(file: File) {
         return result
     }
 
-    fun printModel() {
-        events.forEachIndexed { index, event ->
-            print(index)
-            print(' ')
-            print(event.id + " -> ")
-            when (event) {
-                is SingleOutput -> {
-                    print(event.outGoingTransition.end.id)
-                }
-
-                is MultiOutput -> {
-                    print("[ ")
-                    event.outGoingTransitions.forEach {
-                        print(it.end.id)
-                        print(' ')
-                    }
-                    print(']')
-                }
-
-                else -> { /* No output for other event types */ }
-            }
-            println()
-        }
-        messages.forEachIndexed { index, message ->
-            println("$index ${message.id} ${message.name}")
-        }
-    }
-
 
     fun generateZokratesCode() {
         fun loadTemplate(name: String): String {
@@ -375,8 +335,6 @@ class Model(file: File) {
         val hashTMP = loadTemplate("hash.zok.template")
 
         val P = generateArrayP()
-        printModel()
-        println(P)
         var i = 0
         val builder = StringBuilder()
         @Suppress("UNCHECKED_CAST") val stateVectorElements: List<StateVectorElement> =
@@ -419,7 +377,6 @@ class Model(file: File) {
         builder.clear()
 
         val len_V: Int = stateVectorElements.size
-        //val len_V = 16
         builder.append("const u32 len_V = $len_V;")
         builder.appendLine()
         builder.append("const field[${len_V}][2] keys = [")
@@ -470,19 +427,17 @@ class Model(file: File) {
             }
         }
         events.filter { it is MessageThrowEvent }.forEach { event ->
-            val throwEvent = event as MessageThrowEvent
-            val throwIndex = stateVectorElements.indexOf(event)
             event as MessageThrowEvent
-
+            val throwIndex = stateVectorElements.indexOf(event)
             assertsSB.appendLine("\tassert( state == $throwIndex && msg_curr.${event.message.id} != msg_next.${event.message.id} || msg_curr.${event.message.id} == msg_next.${event.message.id} );")
         }
 
         events.filter { it is MessageCatchEvent }.forEach { event ->
             val catchEvent = event as MessageCatchEvent
             val catchIndex = stateVectorElements.indexOf(event)
-            val throwIntex = stateVectorElements.asSequence()
+            val throwIndex = stateVectorElements.asSequence()
                 .indexOfFirst { it is MessageThrowEvent && it.message.id == catchEvent.message.id }
-            assertsSB.appendLine("\tassert( state != $catchIndex || s_next[state] != 2 || s_next[$throwIntex] == 2 );")
+            assertsSB.appendLine("\tassert( state != $catchIndex || s_next[state] != 2 || s_next[$throwIndex] == 2 );")
         }
 
         val tasks = events.filter { it is StateVectorElement }
@@ -625,7 +580,6 @@ class Model(file: File) {
         }
 
 
-        println("$sb")
         val rootZok = File("root.zok")
         val root = rootTMP
             .replace("[[ !!!REPLACE THIS WITH CONSTANTS!!! ]]", builder.toString())

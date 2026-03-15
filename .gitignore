@@ -7,20 +7,19 @@
 
 *~
 
-# temporary files which can be created if a process still has a handle open of a deleted file
+# Temporary files
 .fuse_hidden*
 
 # KDE directory preferences
 .directory
 
-# Linux trash folder which might appear on any partition or disk
+# Linux trash folder
 .Trash-*
 
-# .nfs files are created when an open file is removed but is still being accessed
+# .nfs files
 .nfs*
 
-# -*- mode: gitignore; -*-
-*~
+# Emacs
 \#*\#
 /.emacs.desktop
 /.emacs.desktop.lock
@@ -69,16 +68,16 @@ flycheck_*.el
 /network-security.data
 abi.json
 
-# IntelliJ / IDE local files
+# IntelliJ / IDE
 .idea/
 *.iml
 *.ipr
 *.iws
 
-# OS local metadata
+# OS metadata
 .DS_Store
 
-# Generated zkWF / ZoKrates local artifacts
+# Generated zkWF / ZoKrates artifacts
 .zokrates/
 /hash
 /hash*_curr
@@ -90,3 +89,9 @@ abi.json
 /stateChange.zok
 *.r1cs
 *.wtns
+
+# Pipeline outputs
+benchmark_*.json
+pipeline_*.log
+*.patch
+__pycache__/

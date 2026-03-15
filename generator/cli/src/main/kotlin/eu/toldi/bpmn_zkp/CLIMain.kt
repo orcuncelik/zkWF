@@ -52,7 +52,6 @@ fun fixLen(message: Double): String {
 fun deploySC(random: Int): String {
     Zokrates.exportVerifier()
 
-    //solidityHelper.compileContract(File("./model.sol"))
     solidityHelper.compileContract(File("./model.sol"))
     val initialState = State(
         model.getInitialStateVector().split(" ").filter { it != "" },
@@ -188,7 +187,7 @@ fun main(args: Array<String>) {
         println("Compile Time:: ${measured.first { it.compileTime != 0.0 }.compileTime}".green())
         println("Setup Time:: ${measured.first { it.setUpTime != 0.0 }.setUpTime}".green())
     }
-    var average = 0.0;
+    var average = 0.0
     if (measured.isNotEmpty() && !skipTest) {
         println("+----+--------------+------------+")
         println("| ID | Witness Time | Proof time |")
@@ -257,7 +256,6 @@ fun callSC(stateProof: StateProof): TransactionReceipt {
     return solidityHelper.callContract(
         deployedContract,
         "stepModel", listOf(newHash, ciphertext, signature, proofParam) as List<Type<Any>>
-        //"stepModel", listOf(newHash, signature, proofParam) as List<Type<Any>>
     )
 }
 
@@ -277,19 +275,16 @@ fun runTestCase(t: TestCase): MeasuredTimes {
 
         val s_curr = t.initialState.toArgs()
         val s_next = t.newState.toArgs()
-        println(s_curr)
         val hash = Zokrates.computeWithness(s_curr, "hash", "hash${t.ID}_curr")
         val hash_next = Zokrates.computeWithness(s_next, "hash", "hash${t.ID}_next")
 
         val keys = getKeys(hashToHexFormat(hash), hashToHexFormat(hash_next), t.keyIndex)
-        println(keys)
         val args = mutableListOf<String>().apply {
             addAll(hash)
             addAll(s_curr)
             addAll(s_next)
             addAll(keys)
         }
-        println(args)
         println("Compiling Test#${t.ID}")
         val compileTime = if (!compiled) measureTimeMillis {
             Zokrates.compile("root.zok")
@@ -343,7 +338,6 @@ fun runTestCase(t: TestCase): MeasuredTimes {
 
 fun getKeys(hash0: String, hash1: String, keyIndex: Int): List<String> {
     val pythonCmd = resolvePythonCommand()
-    println("$pythonCmd ../pycrypto/demo.py $hash0 $hash1")
     val pb = ProcessBuilder(pythonCmd, "../pycrypto/demo.py", hash0, hash1, keyIndex.toString())
 
     val process = pb.start()

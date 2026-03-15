@@ -32,13 +32,13 @@ contract Model is Verifier{
         uint h;
     }
 
-    struct Signiture {
+    struct Signature {
         uint256[2] R;
         uint256 S;
     }
 
     Hash current_hash;
-    Signiture sig;
+    Signature sig;
     string current_ciphertext = "";
 
     constructor(Hash memory start_hash, string memory start_ciphertext) {
@@ -46,7 +46,7 @@ contract Model is Verifier{
         current_ciphertext = start_ciphertext;
     }
 
-    function stepModel(Hash memory hash, string memory ciphertext, Signiture memory sig_new, Proof memory p) public {
+    function stepModel(Hash memory hash, string memory ciphertext, Signature memory sig_new, Proof memory p) public {
         uint[19] memory inputs = [current_hash.a,current_hash.b,current_hash.c,current_hash.d,current_hash.e,current_hash.f,current_hash.g,current_hash.h,sig_new.R[0],sig_new.R[1],sig_new.S,hash.a,hash.b,hash.c,hash.d,hash.e,hash.f,hash.g,hash.h];
         bool verified = verifyTx(p, inputs);
         assert(verified);
@@ -55,12 +55,11 @@ contract Model is Verifier{
         current_hash = hash;
     }
 
-    // zkSync-compatible: return individual values instead of struct
+    // Getters return individual values for zkSync compatibility (no struct returns)
     function getCurrentHash() public view returns (uint, uint, uint, uint, uint, uint, uint, uint) {
         return (current_hash.a, current_hash.b, current_hash.c, current_hash.d, current_hash.e, current_hash.f, current_hash.g, current_hash.h);
     }
 
-    // zkSync-compatible: return individual values instead of struct
     function getLastSignature() public view returns (uint256[2] memory, uint256) {
         return (sig.R, sig.S);
     }
